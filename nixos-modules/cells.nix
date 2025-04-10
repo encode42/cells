@@ -23,7 +23,7 @@ in
       type = types.bool;
       default = false;
       description = ''
-        Whether to enable PufferPanel game management server.
+        Whether to enable Pydio Cells content collaboration platform.
       '';
     };
 
@@ -53,7 +53,7 @@ in
         Environment variables to set for the service. Secrets should be
         specified using {option}`environmentFile`.
 
-        Refer to the [Pydio Cells documentation][] for the list of available
+        Refer to the [Pydio Cells documentation] for the list of available
         configuration options. Variable name is an upper-cased coommand flag,
         prefixed with `CELLS_`. For example, the `bind_address` entry can be
         set using {env}`CELLS_BIND_ADDRESS`.
@@ -75,37 +75,6 @@ in
       '';
     };
 
-    initialConfig = mkOption {
-      type = types.nullOr (
-        types.submodule {
-          freeformType = format.type;
-          options = { };
-        }
-      );
-      default = null;
-      example = lib.literalExpression ''
-        ProxyConfig = {
-          Binds = [ "localhost:8080" ];
-          ReverseProxyURL = "http://localhost:8080";
-        };
-
-        FrontendLogin = "admin";
-        FrontendPassword = "demo";
-
-        DbConnectionType = "socket";
-        DbSocketFile = "/run/mysqld/mysqld.sock";
-        DbSocketName = "cells";
-        DbSocketUser = "cells";
-      '';
-      description = ''
-        Pydio Cells is designed to be configured on installation. These options
-        define the installation model to follow when the `configure` command is
-        automatically called when the `pydio.json` file does not exist.
-
-        [Pydio Cells documentation]: https://pydio.com/en/docs/cells/v4/yamljson-installation
-      '';
-    };
-
     database = {
       enable =
         mkEnableOption "The MySQL database to use with Pydio Cells. See {option}`services.mysql`"
@@ -119,17 +88,6 @@ in
         type = types.str;
         default = "cells";
         description = "The name of the Pydio Cells database.";
-      };
-      host = mkOption {
-        type = types.str;
-        default = "/run/mysqld";
-        example = "127.0.0.1";
-        description = "Hostname or address of the MySQL server. If an absolute path is given here, it will be interpreted as a unix socket path.";
-      };
-      port = mkOption {
-        type = types.port;
-        default = 3306;
-        description = "Port of the MySQL server.";
       };
       user = mkOption {
         type = types.str;
@@ -165,18 +123,9 @@ in
     systemd.services.cells = {
       description = "Pydio Cells content collaboration platform";
       wantedBy = [ "multi-user.target" ];
-      #after = "network.target"
-      #++ lib.optional (cfg.database.enable) "mysql.service";
-      after = [
-        "network.target"
-        "mysql.service"
-      ];
+      after = [ "network.target" ] ++ lib.optional (cfg.database.enable) [ "mysql.service" ];
 
-      environment =
-        cfg.environment
-        // lib.optionalAttrs (cfg.initialConfig != null) {
-          CELLS_INSTALL_JSON = "${format.generate "install-file.json" cfg.initialConfig}";
-        };
+      environment = cfg.environment;
 
       script = ''
         ${lib.concatLines (
@@ -190,16 +139,12 @@ in
             }
         )}
 
-        if [ ! -f "$CELLS_WORKING_DIR/pydio.json" ]; then # TODO: user-specified CELLS_CONFIG
-          exec ${lib.getExe cfg.package} configure
-        fi
-
         exec ${lib.getExe cfg.package} start
       '';
 
       serviceConfig = {
         Type = "simple";
-        Restart = "always"; # TODO: configure command is casuing it to exit early. this should be on-restart
+        Restart = "on-failure";
 
         UMask = "0077";
 
@@ -251,5 +196,5 @@ in
     };
   };
 
-  meta.maintainers = [ lib.maintainers.encode42 ];
+  #meta.maintainers = [ lib.maintainers.encode42 ];
 }
