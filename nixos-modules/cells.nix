@@ -19,14 +19,6 @@ in
   options.services.cells = {
     enable = mkEnableOption "Whether to enable Pydio Cells content collaboration platform.";
 
-    enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Whether to enable Pydio Cells content collaboration platform.
-      '';
-    };
-
     package = lib.mkPackageOption pkgs "cells" { };
 
     extraGroups = mkOption {
