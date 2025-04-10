@@ -115,7 +115,7 @@ in
     systemd.services.cells = {
       description = "Pydio Cells content collaboration platform";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ] ++ [ lib.optional (cfg.database.enable) "mysql.service" ];
+      after = [ "network.target" "mysql.service" ];
 
       environment = cfg.environment;
 
